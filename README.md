@@ -112,13 +112,15 @@ git remote add origin https://github.com/YOUR_USERNAME/bvd-fuel-scraper.git
 git push -u origin main
 ```
 
-### Step 2: Set up Gmail App Password (if using Gmail)
+### Step 2: Set up Email Authentication
 
-1. Go to [Google Account Security](https://myaccount.google.com/security)
-2. Enable **2-Step Verification** (required)
-3. Go to [App Passwords](https://myaccount.google.com/apppasswords)
-4. Generate an App Password for "Mail"
-5. Copy the 16-character password (use this as `SMTP_PASS`)
+**For Zoho Mail (roado.co.in):**
+- Use your regular Zoho password as `SMTP_PASS`
+- If using 2FA, generate an App Password in Zoho Mail Settings
+
+**For Gmail (alternative):**
+1. Enable 2-Step Verification
+2. Generate App Password at [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
 
 ### Step 3: Add GitHub Secrets
 
@@ -126,14 +128,14 @@ Go to your repo → **Settings** → **Secrets and variables** → **Actions** �
 
 Add these 6 secrets:
 
-| Secret Name  | Example Value            | Description |
-|-------------|-------------------------|-------------|
-| `SMTP_HOST` | `smtp.gmail.com`        | SMTP server |
-| `SMTP_PORT` | `587`                   | SMTP port |
-| `SMTP_USER` | `your-email@gmail.com`  | Email username |
-| `SMTP_PASS` | `abcd efgh ijkl mnop`   | Gmail App Password (16 chars) |
-| `EMAIL_FROM`| `your-email@gmail.com`  | Sender email |
-| `EMAIL_TO`  | `recipient@example.com` | Recipient(s) - comma separated |
+| Secret Name  | Value for Zoho Setup      | Description |
+|-------------|---------------------------|-------------|
+| `SMTP_HOST` | `smtp.zoho.com`          | SMTP server |
+| `SMTP_PORT` | `587`                    | SMTP port |
+| `SMTP_USER` | `abhishek.p@roado.co.in` | Email username |
+| `SMTP_PASS` | `your-zoho-password`     | Your Zoho password |
+| `EMAIL_FROM`| `abhishek.p@roado.co.in` | Sender email |
+| `EMAIL_TO`  | `recipient@example.com`  | Recipient(s) - comma separated |
 
 ### Step 4: Test the automation
 
