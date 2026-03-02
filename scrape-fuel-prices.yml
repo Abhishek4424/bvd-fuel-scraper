@@ -1,0 +1,49 @@
+# .github/workflows/scrape-fuel-prices.yml
+#
+# Runs daily at 12:00 UTC (7:00 AM ET / 5:30 PM IST)
+# Scrapes BVD Petroleum fuel prices and emails CSV.
+
+name: BVD Fuel Price Scraper
+
+on:
+  # ┌───── Minute (0-59)
+  # │ ┌───── Hour (0-23, UTC)
+  # │ │ ┌───── Day of Month (1-31)
+  # │ │ │ ┌───── Month (1-12)
+  # │ │ │ │ ┌───── Day of Week (0-6, Sun=0)
+  # │ │ │ │ │
+  schedule:
+    - cron: "0 12 * * *"       # Daily at 12:00 UTC = 7 AM ET = 5:30 PM IST
+
+  # Manual trigger (for testing)
+  workflow_dispatch:
+
+jobs:
+  scrape-and-email:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Run scraper + send email
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: npx tsx src/index.ts

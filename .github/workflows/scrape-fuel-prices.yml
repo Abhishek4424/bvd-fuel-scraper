@@ -1,0 +1,50 @@
+name: BVD Fuel Price Scraper
+
+# Schedule: Run every day at 9:00 AM Eastern Time
+# Note: GitHub Actions uses UTC, so 9 AM EST = 2 PM UTC (EST is UTC-5)
+# During Daylight Saving Time (EDT), 9 AM EDT = 1 PM UTC (EDT is UTC-4)
+on:
+  schedule:
+    - cron: "0 14 * * *"  # 9 AM EST (2 PM UTC) - Standard Time
+    # - cron: "0 13 * * *"  # 9 AM EDT (1 PM UTC) - Uncomment for Daylight Time
+  
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  scrape-and-email:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run fuel price scraper with email
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: npm run scrape
+
+      - name: Upload CSV as artifact (for debugging)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuel-prices-csv
+          path: "*.csv"
+          retention-days: 7
