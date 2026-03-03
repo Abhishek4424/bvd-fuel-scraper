@@ -24,11 +24,13 @@ export interface FuelPrice {
   price: string;
   unit: string;
   date: string;
+  effectiveDate: string;
 }
 
 export interface ScrapeResult {
   success: boolean;
   date: string;
+  effectiveDate: string;
   scrapedAt: string;
   priceCount: number;
   provinceCount: number;
@@ -81,6 +83,16 @@ export async function scrapeBvdPrices(
 
     const rawText = await page.evaluate(() => document.body?.innerText || "");
     console.log(`[Scraper] Page loaded. Text length: ${rawText.length}`);
+
+    // ---------- Extract effective date ----------
+    const effectiveDate = await page.evaluate(() => {
+      const text = document.body?.innerText || "";
+      // Look for pattern: "Prices effective as of YYYY-MM-DD"
+      const match = text.match(/Prices effective as of (\d{4}-\d{2}-\d{2})/i);
+      return match ? match[1] : "";
+    });
+
+    console.log(`[Scraper] Effective date: ${effectiveDate || "Not found"}`);
 
     // ---------- Get all province toggle headers ----------
     const provinceCount = await page.locator(".rp-toggle-title").count();
@@ -160,11 +172,12 @@ export async function scrapeBvdPrices(
                 price,
                 unit: "$/litre",
                 date,
+                effectiveDate: args.effectiveDate,
               } as FuelPrice);
             }
           });
           return results;
-        }, { prov: provinceName, date: todayStr });
+        }, { prov: provinceName, date: todayStr, effectiveDate });
       }
 
       // Fallback: if sibling selector didn't work, try getting all visible
@@ -205,12 +218,13 @@ export async function scrapeBvdPrices(
                 price,
                 unit: "$/litre",
                 date,
+                effectiveDate: args.effectiveDate,
               } as FuelPrice);
             }
           });
 
           return results;
-        }, { index: i, prov: provinceName, date: todayStr });
+        }, { index: i, prov: provinceName, date: todayStr, effectiveDate });
       }
 
       // Second fallback: try getting the content from the parent wrapper
@@ -256,12 +270,13 @@ export async function scrapeBvdPrices(
                 price,
                 unit: "$/litre",
                 date,
+                effectiveDate: args.effectiveDate,
               } as FuelPrice);
             }
           });
 
           return results;
-        }, { index: i, prov: provinceName, date: todayStr });
+        }, { index: i, prov: provinceName, date: todayStr, effectiveDate });
       }
 
       console.log(`  ✓ ${prices.length} stations`);
@@ -297,6 +312,7 @@ export async function scrapeBvdPrices(
     return {
       success: deduped.length > 0,
       date: todayStr,
+      effectiveDate: effectiveDate || todayStr,
       scrapedAt: new Date().toISOString(),
       priceCount: deduped.length,
       provinceCount: provincesWithData,
@@ -311,6 +327,7 @@ export async function scrapeBvdPrices(
     return {
       success: false,
       date: new Date().toISOString().split("T")[0],
+      effectiveDate: "",
       scrapedAt: new Date().toISOString(),
       priceCount: 0,
       provinceCount: 0,

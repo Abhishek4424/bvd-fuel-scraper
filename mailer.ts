@@ -27,7 +27,7 @@ function getSmtpConfig() {
 function pricesToCsv(prices: FuelPrice[]): string {
   if (prices.length === 0) return "No data\n";
 
-  const keys: (keyof FuelPrice)[] = ["province", "station", "city", "country", "price", "unit", "date"];
+  const keys: (keyof FuelPrice)[] = ["province", "station", "city", "country", "price", "unit", "date", "effectiveDate"];
   const header = keys.map((k) => `"${k}"`).join(",");
   const rows = prices.map((p) =>
     keys.map((k) => `"${(p[k] || "").replace(/"/g, '""')}"`).join(",")
@@ -76,10 +76,18 @@ function buildHtml(result: ScrapeResult): string {
       <div style="padding: 24px;">
         <p style="font-size: 16px; color: #2c3e50; margin: 0 0 20px 0; line-height: 1.5;">
           Good morning,<br><br>
-          Please find today's fuel price summary for <strong>${result.date}</strong>. 
+          Please find today's fuel price summary. 
           We've collected data from <strong>${result.priceCount}</strong> stations across 
           <strong>${result.provinceCount}</strong> Canadian provinces.
         </p>
+
+        <!-- Effective Date Highlight -->
+        <div style="background: #e8f4fd; border-left: 4px solid #2980b9; padding: 16px; margin: 20px 0; border-radius: 0 6px 6px 0;">
+          <p style="margin: 0; font-size: 15px; color: #2c3e50;">
+            <strong>💡 Prices Effective Date:</strong> <span style="font-weight: 600; color: #2980b9;">${result.effectiveDate}</span><br>
+            <span style="font-size: 13px; color: #666;">Report generated: ${result.date}</span>
+          </p>
+        </div>
 
         <!-- Summary Table -->
         <div style="margin: 24px 0;">
@@ -159,13 +167,17 @@ export async function sendEmail(result: ScrapeResult) {
   await transporter.sendMail({
     from: cfg.from,
     to: cfg.to,
-    subject: `Daily Fuel Price Report - ${result.date}`,
+    subject: `Daily Fuel Price Report - ${result.effectiveDate} (Effective Date)`,
     text: [
-      `Daily Fuel Price Report - ${result.date}`,
+      `Daily Fuel Price Report - ${result.effectiveDate} (Effective Date)`,
       ``,
       `Good morning,`,
       ``,
-      `Please find today's fuel price summary for ${result.date}.`,
+      `Please find today's fuel price summary.`,
+      ``,
+      `Prices Effective Date: ${result.effectiveDate}`,
+      `Report Generated: ${result.date}`,
+      ``,
       `We've collected data from ${result.priceCount} stations across ${result.provinceCount} Canadian provinces.`,
       ``,
       `Detailed station-by-station data is available in the attached CSV file.`,

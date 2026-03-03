@@ -10,7 +10,7 @@ function pricesToCsv(prices: FuelPrice[]): string {
   if (prices.length === 0) return "No data available\n";
 
   // CSV headers
-  const headers = ["province", "station", "city", "country", "price", "unit", "date"];
+  const headers = ["province", "station", "city", "country", "price", "unit", "date", "effectiveDate"];
   const headerRow = headers.join(",");
 
   // CSV rows - escape quotes and wrap fields in quotes
