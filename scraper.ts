@@ -40,7 +40,7 @@ export interface ScrapeResult {
 }
 
 // ---------- Config ----------
-const TARGET_URL = "https://bvdgroup.com/bvddev/petroleum/prices/";
+const TARGET_URL = "https://bvdgroup.com/petroleum/prices/";
 const PAGE_TIMEOUT = 60_000;
 
 // ---------- Main ----------
@@ -65,12 +65,20 @@ export async function scrapeBvdPrices(
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
       ignoreHTTPSErrors: true,
       viewport: { width: 1280, height: 900 },
+      // Force fresh page loads, disable cache
+      extraHTTPHeaders: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
     });
 
     const page = await context.newPage();
 
-    console.log(`[Scraper] Navigating to ${url}`);
-    await page.goto(url, {
+    // Add cache-busting parameter to ensure fresh data
+    const cacheBustUrl = url.includes('?') ? `${url}&t=${Date.now()}` : `${url}?t=${Date.now()}`;
+    console.log(`[Scraper] Navigating to ${cacheBustUrl}`);
+    await page.goto(cacheBustUrl, {
       waitUntil: "networkidle",
       timeout: PAGE_TIMEOUT,
     });
