@@ -37,7 +37,7 @@ function pricesToCsv(prices: FuelPrice[]): string {
 
 // ---------- HTML email body ----------
 function buildHtml(result: ScrapeResult): string {
-  // Group by province
+  // Group by province and calculate average prices
   const byProvince = new Map<string, FuelPrice[]>();
   for (const p of result.prices) {
     const prov = p.province || "Other";
@@ -45,46 +45,78 @@ function buildHtml(result: ScrapeResult): string {
     byProvince.get(prov)!.push(p);
   }
 
-  let tables = "";
+  // Build summary table
+  let summaryRows = "";
   for (const [province, items] of byProvince) {
-    tables += `
-      <h3 style="color:#1a5276; margin:20px 0 6px; border-bottom:2px solid #2980b9; padding-bottom:4px;">
-        📍 ${province} (${items.length} stations)
-      </h3>
-      <table style="border-collapse:collapse; width:100%; font-size:13px; margin-bottom:12px;">
-        <tr style="background:#2c3e50; color:#fff;">
-          <th style="padding:6px 10px; text-align:left;">Station</th>
-          <th style="padding:6px 10px; text-align:left;">City</th>
-          <th style="padding:6px 10px; text-align:right;">Price ($/L)</th>
-        </tr>
-        ${items
-          .map(
-            (p, i) => `
-        <tr style="background:${i % 2 === 0 ? "#f8f9fa" : "#fff"};">
-          <td style="padding:5px 10px; border-bottom:1px solid #eee;">${p.station}</td>
-          <td style="padding:5px 10px; border-bottom:1px solid #eee;">${p.city}</td>
-          <td style="padding:5px 10px; border-bottom:1px solid #eee; text-align:right; font-weight:bold;">$${p.price}</td>
-        </tr>`
-          )
-          .join("")}
-      </table>
-    `;
+    const prices = items.map(p => parseFloat(p.price)).filter(p => !isNaN(p));
+    const avgPrice = prices.length > 0 ? (prices.reduce((a, b) => a + b, 0) / prices.length).toFixed(3) : "0.000";
+    const minPrice = prices.length > 0 ? Math.min(...prices).toFixed(3) : "0.000";
+    const maxPrice = prices.length > 0 ? Math.max(...prices).toFixed(3) : "0.000";
+    
+    summaryRows += `
+      <tr style="border-bottom: 1px solid #e0e0e0;">
+        <td style="padding: 8px 12px; font-weight: 500;">${province}</td>
+        <td style="padding: 8px 12px; text-align: center;">${items.length}</td>
+        <td style="padding: 8px 12px; text-align: center; font-weight: 600;">$${avgPrice}</td>
+        <td style="padding: 8px 12px; text-align: center;">$${minPrice}</td>
+        <td style="padding: 8px 12px; text-align: center;">$${maxPrice}</td>
+      </tr>`;
   }
 
   return `
-    <div style="font-family:Arial,sans-serif; max-width:900px; margin:0 auto;">
-      <h2 style="color:#2c3e50;">🛢️ BVD Retail Diesel Prices — ${result.date}</h2>
-      <p style="color:#555;">
-        <strong>${result.priceCount}</strong> stations across
-        <strong>${result.provinceCount}</strong> provinces
-        &nbsp;|&nbsp; Scraped: ${result.scrapedAt}
-        &nbsp;|&nbsp; Prices include GST/HST &nbsp;|&nbsp; $/litre
-      </p>
-      ${tables}
-      <hr style="margin:24px 0; border:none; border-top:1px solid #ddd;">
-      <p style="color:#999; font-size:11px;">
-        CSV attached &bull; Source: bvdgroup.com &bull; RoaDo Fuel Price Monitor
-      </p>
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 700px; margin: 0 auto; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px;">
+      
+      <!-- Header -->
+      <div style="background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%); color: white; padding: 24px; border-radius: 8px 8px 0 0;">
+        <h1 style="margin: 0; font-size: 24px; font-weight: 600;">Daily Fuel Price Report</h1>
+        <p style="margin: 8px 0 0 0; font-size: 16px; opacity: 0.9;">BVD Petroleum Retail Diesel Prices</p>
+      </div>
+
+      <!-- Content -->
+      <div style="padding: 24px;">
+        <p style="font-size: 16px; color: #2c3e50; margin: 0 0 20px 0; line-height: 1.5;">
+          Good morning,<br><br>
+          Please find today's fuel price summary for <strong>${result.date}</strong>. 
+          We've collected data from <strong>${result.priceCount}</strong> stations across 
+          <strong>${result.provinceCount}</strong> Canadian provinces.
+        </p>
+
+        <!-- Summary Table -->
+        <div style="margin: 24px 0;">
+          <h3 style="color: #2c3e50; margin: 0 0 12px 0; font-size: 18px; font-weight: 600;">Province Summary</h3>
+          <table style="width: 100%; border-collapse: collapse; background: #f8f9fa; border-radius: 6px; overflow: hidden; border: 1px solid #e0e0e0;">
+            <thead>
+              <tr style="background: #34495e; color: white;">
+                <th style="padding: 12px; text-align: left; font-weight: 600;">Province</th>
+                <th style="padding: 12px; text-align: center; font-weight: 600;">Stations</th>
+                <th style="padding: 12px; text-align: center; font-weight: 600;">Avg Price</th>
+                <th style="padding: 12px; text-align: center; font-weight: 600;">Min Price</th>
+                <th style="padding: 12px; text-align: center; font-weight: 600;">Max Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${summaryRows}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Data Notes -->
+        <div style="background: #f8f9fa; padding: 16px; border-radius: 6px; border-left: 4px solid #3498db; margin: 20px 0;">
+          <p style="margin: 0; font-size: 14px; color: #555;">
+            <strong>Data Notes:</strong> All prices are in Canadian dollars per litre and include applicable taxes (GST/HST). 
+            Detailed station-by-station data is available in the attached CSV file.
+          </p>
+        </div>
+
+        <!-- Footer -->
+        <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e0e0e0;">
+          <p style="margin: 0; font-size: 13px; color: #666;">
+            <strong>Source:</strong> BVD Group (bvdgroup.com)<br>
+            <strong>Generated:</strong> ${new Date(result.scrapedAt).toLocaleString()}<br>
+            <strong>System:</strong> RoaDo Fuel Price Monitor
+          </p>
+        </div>
+      </div>
     </div>
   `;
 }
@@ -127,10 +159,23 @@ export async function sendEmail(result: ScrapeResult) {
   await transporter.sendMail({
     from: cfg.from,
     to: cfg.to,
-    subject: `🛢️ BVD Fuel Prices — ${result.date} (${result.priceCount} stations, ${result.provinceCount} provinces)`,
-    text: result.prices
-      .map((p) => `[${p.province}] ${p.station}, ${p.city}: $${p.price}/L`)
-      .join("\n"),
+    subject: `Daily Fuel Price Report - ${result.date}`,
+    text: [
+      `Daily Fuel Price Report - ${result.date}`,
+      ``,
+      `Good morning,`,
+      ``,
+      `Please find today's fuel price summary for ${result.date}.`,
+      `We've collected data from ${result.priceCount} stations across ${result.provinceCount} Canadian provinces.`,
+      ``,
+      `Detailed station-by-station data is available in the attached CSV file.`,
+      ``,
+      `Best regards,`,
+      `RoaDo Fuel Price Monitor`,
+      ``,
+      `Data Source: BVD Group (bvdgroup.com)`,
+      `Generated: ${new Date(result.scrapedAt).toLocaleString()}`,
+    ].join("\n"),
     html: buildHtml(result),
     attachments: [{ filename, content: csv, contentType: "text/csv" }],
   });
